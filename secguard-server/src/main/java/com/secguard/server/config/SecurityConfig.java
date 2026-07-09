@@ -5,6 +5,7 @@ import com.secguard.server.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -43,12 +44,12 @@ public class SecurityConfig {
             // 请求授权规则
             .authorizeHttpRequests(auth -> auth
                 // 公开接口
-                .requestMatchers("/api/agents/register").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/agents/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 // Agent 通信接口（由 AgentKeyAuthFilter 处理）
-                .requestMatchers("/api/agents/heartbeat").hasRole("AGENT")
+                .requestMatchers(HttpMethod.POST, "/api/agents/heartbeat").hasRole("AGENT")
                 .requestMatchers("/api/events/**").hasRole("AGENT")
                 // 管理端接口需要认证
                 .anyRequest().authenticated()
