@@ -42,3 +42,6 @@ logs/
 *.tmp
 *.bak
 *.swp
+
+# ===== SecGuard Agent runtime data =====
+.secguard/
