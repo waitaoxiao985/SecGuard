@@ -63,8 +63,9 @@ secguard:
 
   # Agent 配置
   agent:
-    heartbeat-timeout: 120  # Agent 心跳超时（秒），超过此时间标记为离线
-    cleanup-interval: 3600  # 清理过期 Agent 间隔（秒）
+    heartbeat-timeout: 120       # Agent 心跳超时（秒），超过此时间标记为离线
+    health-check-interval: 30000 # 健康检查扫描间隔（毫秒）
+    cleanup-interval: 3600       # 清理过期 Agent 间隔（秒）
 
   # 规则引擎
   engine:
