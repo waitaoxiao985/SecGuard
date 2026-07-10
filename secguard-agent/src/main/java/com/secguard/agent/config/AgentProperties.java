@@ -19,6 +19,7 @@ public class AgentProperties {
     private LogConfig log = new LogConfig();
     private FimConfig fim = new FimConfig();
     private HeartbeatConfig heartbeat = new HeartbeatConfig();
+    private InventoryConfig inventory = new InventoryConfig();
 
     @Data
     public static class AgentConfig {
@@ -54,5 +55,13 @@ public class AgentProperties {
     public static class HeartbeatConfig {
         /** 心跳间隔（秒），默认 30 秒 */
         private int interval = 30;
+    }
+
+    @Data
+    public static class InventoryConfig {
+        /** 是否启用资产采集 */
+        private boolean enabled = true;
+        /** 采集间隔（秒），默认 3600 秒（1 小时） */
+        private int interval = 3600;
     }
 }

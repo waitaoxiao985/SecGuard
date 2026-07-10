@@ -4,6 +4,7 @@ import com.secguard.agent.config.AgentProperties;
 import com.secguard.common.dto.ApiResponse;
 import com.secguard.common.dto.FIMBaselineSnapshot;
 import com.secguard.common.dto.FIMEvent;
+import com.secguard.common.dto.InventorySnapshot;
 import com.secguard.common.dto.LogEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -178,6 +179,54 @@ public class EventSender {
             }
         }
         log.warn("Failed to send baseline snapshot after {} attempts", maxRetries);
+        return false;
+    }
+
+    /**
+     * 发送主机资产快照到 Server
+     *
+     * @param snapshot 资产快照（系统信息 + 软件 + 端口 + 网络接口）
+     * @param agentKey Agent 密钥
+     * @return 是否发送成功
+     */
+    public boolean sendInventorySnapshot(InventorySnapshot snapshot, String agentKey) {
+        if (snapshot == null) return true;
+
+        String url = properties.getAgent().getServerUrl() + "/api/events/inventory";
+        int maxRetries = 2;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("X-Agent-Key", agentKey);
+
+                HttpEntity<InventorySnapshot> entity = new HttpEntity<>(snapshot, headers);
+                ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                        url, HttpMethod.POST, entity, ApiResponse.class);
+
+                if (response.getStatusCode().is2xxSuccessful()
+                        && response.getBody() != null
+                        && response.getBody().getCode() == 200) {
+                    log.info("Sent inventory snapshot to server");
+                    return true;
+                }
+
+                log.warn("Server responded with error for inventory: {}", response.getBody());
+            } catch (Exception e) {
+                log.warn("Failed to send inventory (attempt {}/{}): {}",
+                        attempt, maxRetries, e.getMessage());
+                if (attempt < maxRetries) {
+                    try {
+                        Thread.sleep(2000L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                }
+            }
+        }
+        log.warn("Failed to send inventory snapshot after {} attempts", maxRetries);
         return false;
     }
 }

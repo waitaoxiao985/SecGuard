@@ -63,7 +63,7 @@ SecGuard/
 │   ├── heartbeat/                # 心跳任务（系统指标上报 + 配置同步）
 │   ├── collector/log/            # 日志采集（LogFileTailer + LogParser + LogCollector）
 │   ├── collector/fim/            # FIM 文件完整性监控（FileHasher + FimBaseline + FimScanner + FimCollector）
-│   ├── collector/inventory/      # 主机资产采集（W7）
+│   ├── collector/inventory/      # 主机资产采集（SystemInfoCollector + SoftwareCollector + PortCollector + NetworkCollector + InventoryCollector）
 │   ├── sender/                   # 事件上报（HTTP 批量 + 重试）
 │   └── AgentStartupRunner.java   # 启动自动注册
 │
@@ -139,6 +139,15 @@ SecGuard/
 | GET | `/api/rules` | 已加载规则列表 | JWT |
 | GET | `/api/rules/stats` | 规则统计 | JWT |
 | POST | `/api/rules/reload` | 热重载规则 | JWT |
+| GET | `/api/inventory/stats` | 资产统计摘要（Agent 数、软件/端口/网卡总数） | JWT |
+| GET | `/api/inventory/summary/{agentId}` | Agent 资产概要（系统信息 + 各维度计数） | JWT |
+| GET | `/api/inventory/system` | 查询最新系统信息 | JWT |
+| GET | `/api/inventory/system/history` | 系统信息历史（分页） | JWT |
+| GET | `/api/inventory/software` | 查询软件列表（分页） | JWT |
+| GET | `/api/inventory/software/search` | 跨 Agent 软件搜索（名称模糊匹配） | JWT |
+| GET | `/api/inventory/ports` | 查询端口列表（分页） | JWT |
+| GET | `/api/inventory/ports/search` | 跨 Agent 端口号搜索 | JWT |
+| GET | `/api/inventory/networks` | 查询网络接口（分页） | JWT |
 
 ### WebSocket
 
@@ -236,7 +245,7 @@ curl http://localhost:8900/api/events/logs?page=0&size=10 -H "Authorization: Bea
 | W4 | 规则引擎 + 告警 | ✅ 完成 |
 | W5 | FIM 模块（Agent 端） | ✅ 完成 |
 | W6 | FIM 模块（Server 端） | ✅ 完成 |
-| W7 | 主机资产采集 | ⏳ |
+| W7 | 主机资产采集 | ✅ 完成 |
 | W8 | 漏洞检测 + Dashboard 基础 | ⏳ |
 | W9 | Dashboard 完善 | ⏳ |
 | W10 | 收尾 + 文档 | ⏳ |

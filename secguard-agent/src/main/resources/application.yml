@@ -35,6 +35,11 @@ secguard:
   heartbeat:
     interval: 30  # 心跳间隔（秒）
 
+  # 主机资产采集配置
+  inventory:
+    enabled: true
+    interval: 120  # 采集间隔（秒），测试用 120s，生产建议 3600s
+
 # ===== 日志 =====
 logging:
   level:
