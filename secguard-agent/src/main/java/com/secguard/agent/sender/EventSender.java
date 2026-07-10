@@ -2,6 +2,7 @@ package com.secguard.agent.sender;
 
 import com.secguard.agent.config.AgentProperties;
 import com.secguard.common.dto.ApiResponse;
+import com.secguard.common.dto.FIMEvent;
 import com.secguard.common.dto.LogEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -77,6 +78,54 @@ public class EventSender {
             }
         }
         log.error("Failed to send {} events after {} attempts", events.size(), maxRetries);
+        return false;
+    }
+
+    /**
+     * 批量发送 FIM 事件到 Server
+     *
+     * @param events   FIM 事件列表
+     * @param agentKey Agent 密钥
+     * @return 是否发送成功
+     */
+    public boolean sendFimEvents(List<FIMEvent> events, String agentKey) {
+        if (events == null || events.isEmpty()) return true;
+
+        String url = properties.getAgent().getServerUrl() + "/api/events/fim";
+        int maxRetries = 3;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("X-Agent-Key", agentKey);
+
+                HttpEntity<List<FIMEvent>> entity = new HttpEntity<>(events, headers);
+                ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                        url, HttpMethod.POST, entity, ApiResponse.class);
+
+                if (response.getStatusCode().is2xxSuccessful()
+                        && response.getBody() != null
+                        && response.getBody().getCode() == 200) {
+                    log.info("Sent {} FIM events to server", events.size());
+                    return true;
+                }
+
+                log.warn("Server responded with error for FIM events: {}", response.getBody());
+            } catch (Exception e) {
+                log.warn("Failed to send FIM events (attempt {}/{}): {}",
+                        attempt, maxRetries, e.getMessage());
+                if (attempt < maxRetries) {
+                    try {
+                        Thread.sleep(1000L * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                }
+            }
+        }
+        log.error("Failed to send {} FIM events after {} attempts", events.size(), maxRetries);
         return false;
     }
 }

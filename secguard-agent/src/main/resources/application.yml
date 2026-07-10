@@ -24,6 +24,13 @@ secguard:
     interval: 5  # 采集间隔（秒）
     max-batch-size: 100  # 单次最大采集条数
 
+  # FIM 文件完整性监控配置
+  fim:
+    paths:
+      - "C:/secguard-fim-test"
+    interval: 30  # 扫描间隔（秒），测试用 30s，生产建议 300s
+    max-file-size-mb: 10  # 单文件最大哈希大小（MB）
+
 # ===== 日志 =====
 logging:
   level:
