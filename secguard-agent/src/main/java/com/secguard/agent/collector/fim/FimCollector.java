@@ -3,6 +3,8 @@ package com.secguard.agent.collector.fim;
 import com.secguard.agent.config.AgentProperties;
 import com.secguard.agent.registration.AgentRegistrar;
 import com.secguard.agent.sender.EventSender;
+import com.secguard.common.dto.FIMBaselineEntry;
+import com.secguard.common.dto.FIMBaselineSnapshot;
 import com.secguard.common.dto.FIMEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +12,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * FIM 采集调度器
@@ -35,6 +39,7 @@ public class FimCollector {
     private final EventSender eventSender;
 
     private boolean baselineInitialized = false;
+    private int baselineVersion = 0;
 
     @PostConstruct
     public void init() {
@@ -66,11 +71,13 @@ public class FimCollector {
         // 执行扫描
         List<FIMEvent> events = fimScanner.scan();
 
-        // 首次扫描：建立基线，不上报事件
+        // 首次扫描：建立基线，不上报变更事件，但上报基线快照到 Server
         if (!baselineInitialized) {
             baselineInitialized = true;
+            baselineVersion++;
             fimBaseline.saveToDisk();
             log.info("FIM baseline initialized: {} file(s) cataloged", fimBaseline.size());
+            uploadBaselineSnapshot();
             return;
         }
 
@@ -78,14 +85,46 @@ public class FimCollector {
         if (!events.isEmpty()) {
             boolean success = eventSender.sendFimEvents(events, registrar.getAgentKey());
             if (success) {
+                baselineVersion++;
                 fimBaseline.saveToDisk();
                 log.info("FIM scan complete: {} change(s) detected and reported", events.size());
+                // 变更上报成功后同步基线快照到 Server
+                uploadBaselineSnapshot();
             } else {
                 log.warn("FIM scan: {} change(s) detected but failed to report (will retry next scan)",
                         events.size());
             }
         } else {
             log.debug("FIM scan complete: no changes detected");
+        }
+    }
+
+    /**
+     * 构建并上传基线快照到 Server
+     */
+    private void uploadBaselineSnapshot() {
+        try {
+            Map<String, FimBaseline.FileEntry> snapshot = fimBaseline.snapshot();
+            List<FIMBaselineEntry> entries = new ArrayList<>(snapshot.size());
+            for (Map.Entry<String, FimBaseline.FileEntry> entry : snapshot.entrySet()) {
+                FimBaseline.FileEntry fe = entry.getValue();
+                entries.add(FIMBaselineEntry.builder()
+                        .filePath(entry.getKey())
+                        .sha256(fe.getSha256())
+                        .fileSize(fe.getFileSize())
+                        .permissions(fe.getPermissions())
+                        .owner(fe.getOwner())
+                        .build());
+            }
+
+            FIMBaselineSnapshot fimSnapshot = FIMBaselineSnapshot.builder()
+                    .version(baselineVersion)
+                    .entries(entries)
+                    .build();
+
+            eventSender.sendBaselineSnapshot(fimSnapshot, registrar.getAgentKey());
+        } catch (Exception e) {
+            log.warn("Failed to upload baseline snapshot: {}", e.getMessage());
         }
     }
 }

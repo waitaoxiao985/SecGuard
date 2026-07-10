@@ -72,6 +72,40 @@ secguard:
     rules-path: classpath:rules/
     reload-on-change: true
 
+  # FIM 高危文件监控规则（路径匹配到变更事件时自动触发告警）
+  fim:
+    high-risk-paths:
+      - pattern: "/etc/passwd"
+        severity: 12
+        description: "Critical system file modified: /etc/passwd"
+        mitre-technique: "T1548.001"
+        mitre-tactic: "TA0004"
+      - pattern: "/etc/shadow"
+        severity: 14
+        description: "Critical credential file modified: /etc/shadow"
+        mitre-technique: "T1003.008"
+        mitre-tactic: "TA0006"
+      - pattern: ".ssh/authorized_keys"
+        severity: 12
+        description: "SSH authorized_keys modified — possible persistence"
+        mitre-technique: "T1098.004"
+        mitre-tactic: "TA0003"
+      - pattern: "/etc/sudoers"
+        severity: 13
+        description: "Sudoers file modified — privilege escalation risk"
+        mitre-technique: "T1548.003"
+        mitre-tactic: "TA0004"
+      - pattern: "/etc/crontab"
+        severity: 10
+        description: "System crontab modified — possible persistence"
+        mitre-technique: "T1053.003"
+        mitre-tactic: "TA0003"
+      - pattern: "/etc/ld.so.preload"
+        severity: 14
+        description: "Shared library preload modified — possible rootkit"
+        mitre-technique: "T1574.006"
+        mitre-tactic: "TA0003"
+
 # ===== 日志 =====
 logging:
   level:

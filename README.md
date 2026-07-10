@@ -54,7 +54,7 @@ SecGuard/
 │   ├── scheduler/                # 定时任务（AgentHealthChecker 断线检测）
 │   ├── consumer/                 # Redis Stream 消费者（W4）
 │   └── resources/
-│       ├── db/migration/         # Flyway 迁移脚本 (V1: 13表, V3: +日志事件表)
+│       ├── db/migration/         # Flyway 迁移脚本 (V1: 13表, V3: +日志事件表, V4: +基线增强)
 │       └── rules/                # 内置 YAML 规则文件
 │
 ├── secguard-agent/               # 轻量级 Agent (端口 8901)
@@ -111,6 +111,7 @@ SecGuard/
 | POST | `/api/agents/heartbeat` | Agent 心跳 | X-Agent-Key |
 | POST | `/api/events/logs` | 日志事件上报 | X-Agent-Key |
 | POST | `/api/events/fim` | FIM 事件上报 | X-Agent-Key |
+| POST | `/api/events/fim/baseline` | FIM 基线快照上报 | X-Agent-Key |
 | POST | `/api/events/inventory` | 资产数据上报 | X-Agent-Key |
 
 ### 管理后台
@@ -125,7 +126,10 @@ SecGuard/
 | DELETE | `/api/agents/{id}` | 删除 Agent | JWT |
 | GET | `/api/events/logs` | 日志事件查询（支持 agentId/category 过滤） | JWT |
 | GET | `/api/events/stats` | 日志统计 | JWT |
-| GET | `/api/events/fim` | FIM 事件查询（支持 agentId/eventType 过滤） | JWT |
+| GET | `/api/events/fim` | FIM 事件查询（支持 agentId/eventType/时间范围/路径模糊过滤） | JWT |
+| GET | `/api/events/fim/stats` | FIM 事件统计（按类型/Agent 分组、趋势、TOP 路径） | JWT |
+| GET | `/api/events/fim/baseline` | FIM 基线查询（按 Agent 分页） | JWT |
+| PUT | `/api/events/fim/baseline/{agentId}/reset` | 重置 Agent FIM 基线 | JWT |
 | GET | `/api/alerts` | 告警列表（支持 severity/status/category 过滤） | JWT |
 | GET | `/api/alerts/stats` | 告警统计 | JWT |
 | GET | `/api/alerts/{id}` | 告警详情 | JWT |
@@ -231,7 +235,7 @@ curl http://localhost:8900/api/events/logs?page=0&size=10 -H "Authorization: Bea
 | W3 | 日志采集（Agent 端） | ✅ 完成 |
 | W4 | 规则引擎 + 告警 | ✅ 完成 |
 | W5 | FIM 模块（Agent 端） | ✅ 完成 |
-| W6 | FIM 模块（Server 端） | ⏳ |
+| W6 | FIM 模块（Server 端） | ✅ 完成 |
 | W7 | 主机资产采集 | ⏳ |
 | W8 | 漏洞检测 + Dashboard 基础 | ⏳ |
 | W9 | Dashboard 完善 | ⏳ |
