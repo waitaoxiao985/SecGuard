@@ -1,5 +1,7 @@
 package com.secguard.server.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.secguard.common.enums.AlertStatus;
 import com.secguard.common.enums.EventCategory;
 import com.secguard.common.enums.Severity;
@@ -33,7 +35,14 @@ public class Alert {
     /** 关联 Agent */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
+    @JsonIgnore
     private Agent agent;
+
+    /** Agent ID（序列化时使用） */
+    @JsonProperty("agentId")
+    public Long getAgentId() {
+        return agent != null ? agent.getId() : null;
+    }
 
     /** 触发规则 ID */
     private Long ruleId;

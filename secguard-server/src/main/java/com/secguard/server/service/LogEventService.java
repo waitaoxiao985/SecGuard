@@ -3,6 +3,7 @@ package com.secguard.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.secguard.common.dto.LogEvent;
+import com.secguard.server.engine.RuleEngine;
 import com.secguard.server.entity.LogEventEntity;
 import com.secguard.server.repository.AgentRepository;
 import com.secguard.server.repository.LogEventRepository;
@@ -14,7 +15,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -23,8 +23,8 @@ import java.util.Map;
 /**
  * 日志事件服务
  *
- * W3 职责：接收 Agent 上报的日志事件并持久化到 sg_log_event 表。
- * W4 会在此基础上增加规则引擎消费（Redis Stream → 匹配规则 → 生成告警）。
+ * W3: 接收 Agent 上报的日志事件并持久化
+ * W4: 持久化后送入规则引擎进行匹配，触发告警
  */
 @Service
 @RequiredArgsConstructor
@@ -34,9 +34,13 @@ public class LogEventService {
     private final LogEventRepository logEventRepository;
     private final AgentRepository agentRepository;
     private final ObjectMapper objectMapper;
+    private final RuleEngine ruleEngine;
 
     /**
-     * 批量接收并存储日志事件
+     * 批量接收并处理日志事件
+     *
+     * 1. 存储到 sg_log_event 表
+     * 2. 送入规则引擎匹配 → 触发告警
      *
      * @param agentKey Agent 密钥
      * @param events   日志事件列表
@@ -44,7 +48,6 @@ public class LogEventService {
      */
     @Transactional
     public int ingestEvents(String agentKey, List<LogEvent> events) {
-        // 根据 agentKey 查找 Agent
         Long agentId = agentRepository.findByAgentKey(agentKey)
                 .map(a -> a.getId())
                 .orElse(null);
@@ -54,12 +57,30 @@ public class LogEventService {
             return 0;
         }
 
+        // 1. 持久化日志
         List<LogEventEntity> entities = events.stream()
                 .map(event -> toEntity(agentId, event))
                 .toList();
-
         logEventRepository.saveAll(entities);
         log.info("Ingested {} log events from agent {} (id={})", events.size(), agentKey, agentId);
+
+        // 2. 规则引擎处理
+        for (LogEvent event : events) {
+            try {
+                Map<String, String> fields = event.getFields();
+                if (fields == null) fields = Map.of("message", event.getRawLog());
+
+                ruleEngine.processEvent(
+                        fields,
+                        event.getRawLog(),
+                        event.getSource(),
+                        agentId
+                );
+            } catch (Exception e) {
+                log.warn("Rule engine error for event: {}", e.getMessage());
+            }
+        }
+
         return entities.size();
     }
 
@@ -86,9 +107,6 @@ public class LogEventService {
         return logEventRepository.count();
     }
 
-    /**
-     * LogEvent DTO → LogEventEntity
-     */
     private LogEventEntity toEntity(Long agentId, LogEvent event) {
         String fieldsJson = null;
         if (event.getFields() != null && !event.getFields().isEmpty()) {

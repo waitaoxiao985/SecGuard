@@ -1,0 +1,113 @@
+# SecGuard SSH 安全规则集
+# 参考 Wazuh SSH 规则 (5700 系列)
+
+rules:
+  - rule_id: 5700
+    name: "SSH 认证事件"
+    level: 0
+    category: authentication
+    description: "SSH 认证相关事件（基础匹配）"
+    mitre:
+      tactic: ["TA0006"]
+      technique: ["T1110"]
+    conditions:
+      field_match:
+        - field: "program"
+          operator: "equals"
+          value: "sshd"
+
+  - rule_id: 5710
+    name: "SSH 登录失败"
+    level: 5
+    category: authentication
+    description: "检测到 SSH 登录失败事件，可能为暴力破解"
+    mitre:
+      tactic: ["TA0006"]
+      technique: ["T1110.001"]
+    pci_dss: ["10.2.4", "10.2.5"]
+    conditions:
+      field_match:
+        - field: "program"
+          operator: "equals"
+          value: "sshd"
+        - field: "message"
+          operator: "regex"
+          value: "Failed password for .* from (\\S+)"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "from (\\S+)"
+        - field: "username"
+          from: "message"
+          regex: "for (\\S+)"
+
+  - rule_id: 5712
+    name: "SSH 暴力破解攻击"
+    level: 10
+    category: authentication
+    description: "同一 IP 短时间内多次 SSH 登录失败，疑似暴力破解"
+    mitre:
+      tactic: ["TA0006"]
+      technique: ["T1110.001"]
+    pci_dss: ["10.2.4", "10.2.5", "11.4"]
+    conditions:
+      field_match:
+        - field: "program"
+          operator: "equals"
+          value: "sshd"
+        - field: "message"
+          operator: "regex"
+          value: "Failed password for .* from (\\S+)"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "from (\\S+)"
+        - field: "username"
+          from: "message"
+          regex: "for (\\S+)"
+
+  - rule_id: 5715
+    name: "SSH 登录成功"
+    level: 3
+    category: authentication
+    description: "SSH 登录成功事件"
+    mitre:
+      tactic: ["TA0001"]
+      technique: ["T1078"]
+    conditions:
+      field_match:
+        - field: "program"
+          operator: "equals"
+          value: "sshd"
+        - field: "message"
+          operator: "regex"
+          value: "Accepted (password|publickey) for"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "from (\\S+)"
+        - field: "username"
+          from: "message"
+          regex: "for (\\S+)"
+
+  - rule_id: 5720
+    name: "SSH root 登录尝试"
+    level: 8
+    category: authentication
+    description: "尝试以 root 用户进行 SSH 登录"
+    mitre:
+      tactic: ["TA0006"]
+      technique: ["T1110"]
+    pci_dss: ["10.2.4"]
+    conditions:
+      field_match:
+        - field: "program"
+          operator: "equals"
+          value: "sshd"
+        - field: "message"
+          operator: "regex"
+          value: "Failed password for root from"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "from (\\S+)"

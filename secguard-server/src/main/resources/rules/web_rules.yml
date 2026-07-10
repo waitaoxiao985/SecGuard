@@ -1,0 +1,107 @@
+# SecGuard Web 服务器安全规则集
+# 覆盖 Nginx/Apache 访问日志中的攻击特征
+
+rules:
+  - rule_id: 31100
+    name: "Web 服务器 4xx 错误"
+    level: 0
+    category: web
+    description: "Web 服务器返回 4xx 客户端错误"
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "\"[A-Z]+ .+ HTTP/\\d\\.\\d\" 4\\d{2}"
+
+  - rule_id: 31101
+    name: "Web 401 未授权访问"
+    level: 5
+    category: web
+    description: "Web 服务器返回 401 未授权，可能存在未授权访问尝试"
+    mitre:
+      tactic: ["TA0001"]
+      technique: ["T1190"]
+    pci_dss: ["10.2.4"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "\"[A-Z]+ .+ HTTP/\\d\\.\\d\" 401"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "^(\\S+)"
+
+  - rule_id: 31102
+    name: "Web 403 禁止访问"
+    level: 5
+    category: web
+    description: "Web 服务器返回 403 禁止访问"
+    mitre:
+      tactic: ["TA0001"]
+      technique: ["T1190"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "\"[A-Z]+ .+ HTTP/\\d\\.\\d\" 403"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "^(\\S+)"
+
+  - rule_id: 31110
+    name: "SQL 注入攻击尝试"
+    level: 12
+    category: web
+    description: "检测到 SQL 注入攻击特征"
+    mitre:
+      tactic: ["TA0001"]
+      technique: ["T1190"]
+    pci_dss: ["6.5.1", "11.4"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "(?i)(union\\s+select|or\\s+1\\s*=\\s*1|'\\s*or\\s*'|drop\\s+table|;\\s*--|information_schema)"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "^(\\S+)"
+
+  - rule_id: 31120
+    name: "XSS 攻击尝试"
+    level: 10
+    category: web
+    description: "检测到跨站脚本攻击特征"
+    mitre:
+      tactic: ["TA0001"]
+      technique: ["T1189"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "(?i)(<script|javascript:|onerror=|onload=|eval\\(|alert\\()"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "^(\\S+)"
+
+  - rule_id: 31130
+    name: "路径遍历攻击"
+    level: 10
+    category: web
+    description: "检测到目录遍历攻击尝试"
+    mitre:
+      tactic: ["TA0001"]
+      technique: ["T1083"]
+    pci_dss: ["6.5.1"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "(\\.\\./|\\.\\.\\\\|%2e%2e|/etc/passwd|/etc/shadow)"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "^(\\S+)"

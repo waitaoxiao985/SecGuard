@@ -125,7 +125,15 @@ SecGuard/
 | DELETE | `/api/agents/{id}` | 删除 Agent | JWT |
 | GET | `/api/events/logs` | 日志事件查询（支持 agentId/category 过滤） | JWT |
 | GET | `/api/events/stats` | 日志统计 | JWT |
-| GET | `/api/alerts` | 告警列表 | JWT |
+| GET | `/api/alerts` | 告警列表（支持 severity/status/category 过滤） | JWT |
+| GET | `/api/alerts/stats` | 告警统计 | JWT |
+| GET | `/api/alerts/{id}` | 告警详情 | JWT |
+| PUT | `/api/alerts/{id}/acknowledge` | 确认告警 | JWT |
+| PUT | `/api/alerts/{id}/resolve` | 解决告警 | JWT |
+| PUT | `/api/alerts/{id}/false-positive` | 标记误报 | JWT |
+| GET | `/api/rules` | 已加载规则列表 | JWT |
+| GET | `/api/rules/stats` | 规则统计 | JWT |
+| POST | `/api/rules/reload` | 热重载规则 | JWT |
 
 ### WebSocket
 
@@ -220,7 +228,7 @@ curl http://localhost:8900/api/events/logs?page=0&size=10 -H "Authorization: Bea
 | W1 | 项目骨架搭建 | ✅ 完成 |
 | W2 | Agent 注册与通信 | ✅ 完成 |
 | W3 | 日志采集（Agent 端） | ✅ 完成 |
-| W4 | 规则引擎 + 告警 | 🔜 进行中 |
+| W4 | 规则引擎 + 告警 | ✅ 完成 |
 | W5 | FIM 模块（Agent 端） | ⏳ |
 | W6 | FIM 模块（Server 端） | ⏳ |
 | W7 | 主机资产采集 | ⏳ |

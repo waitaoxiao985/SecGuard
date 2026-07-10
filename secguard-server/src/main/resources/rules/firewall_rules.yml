@@ -1,0 +1,67 @@
+# SecGuard 防火墙安全规则集
+# 覆盖 iptables/UFW 日志中的异常流量
+
+rules:
+  - rule_id: 4100
+    name: "防火墙丢包事件"
+    level: 3
+    category: firewall
+    description: "防火墙规则命中并丢弃数据包"
+    mitre:
+      tactic: ["TA0011"]
+      technique: ["T1071"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "\\[(?:UFW|iptables) (?:BLOCK|DROP)\\]|DPT=\\d+"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "SRC=(\\S+)"
+        - field: "dest_port"
+          from: "message"
+          regex: "DPT=(\\d+)"
+
+  - rule_id: 4110
+    name: "高危端口扫描"
+    level: 10
+    category: firewall
+    description: "检测到对高危端口（445/3389/4444/5555）的访问"
+    mitre:
+      tactic: ["TA0007"]
+      technique: ["T1046"]
+    pci_dss: ["1.2.1", "11.4"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "DPT=(445|3389|4444|5555|1433|3306)"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "SRC=(\\S+)"
+        - field: "dest_port"
+          from: "message"
+          regex: "DPT=(\\d+)"
+
+  - rule_id: 4120
+    name: "SSH 端口外部探测"
+    level: 8
+    category: firewall
+    description: "防火墙拦截到对 SSH 端口(22)的外部访问"
+    mitre:
+      tactic: ["TA0007"]
+      technique: ["T1046"]
+    conditions:
+      field_match:
+        - field: "message"
+          operator: "regex"
+          value: "DPT=22"
+        - field: "message"
+          operator: "regex"
+          value: "(BLOCK|DROP|REJECT)"
+      extract:
+        - field: "source_ip"
+          from: "message"
+          regex: "SRC=(\\S+)"
