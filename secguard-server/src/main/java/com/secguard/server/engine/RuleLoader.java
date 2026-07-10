@@ -28,7 +28,7 @@ public class RuleLoader {
     @Value("${secguard.engine.rules-path:classpath:rules/}")
     private String rulesPath;
 
-    private final Map<Integer, Rule> rules = new ConcurrentHashMap<>();
+    private volatile Map<Integer, Rule> rules = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -40,7 +40,7 @@ public class RuleLoader {
      */
     @SuppressWarnings("unchecked")
     public synchronized void loadRules() {
-        rules.clear();
+        Map<Integer, Rule> newRules = new ConcurrentHashMap<>();
         Yaml yaml = new Yaml();
 
         try {
@@ -61,7 +61,7 @@ public class RuleLoader {
 
                         Rule rule = parseRule(map);
                         if (rule != null) {
-                            rules.put(rule.getRuleId(), rule);
+                            newRules.put(rule.getRuleId(), rule);
                             log.debug("Loaded rule: [{}] {} (level={}, category={})",
                                     rule.getRuleId(), rule.getName(), rule.getLevel(), rule.getCategory());
                         }
@@ -71,7 +71,9 @@ public class RuleLoader {
                 }
             }
 
-            log.info("Rule engine loaded {} rule(s) from {} file(s)", rules.size(), resources.length);
+            // 原子替换引用：在全部规则加载完毕后才切换，避免热加载期间规则为空
+            this.rules = newRules;
+            log.info("Rule engine loaded {} rule(s) from {} file(s)", newRules.size(), resources.length);
         } catch (Exception e) {
             log.error("Failed to scan rules directory: {}", rulesPath, e);
         }

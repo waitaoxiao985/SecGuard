@@ -53,6 +53,7 @@ public class LogCollector {
         Path dataDir = Paths.get(properties.getAgent().getDataDir());
         List<LogEvent> events = new ArrayList<>();
         int maxBatch = properties.getLog().getMaxBatchSize();
+        Set<String> processedKeys = new HashSet<>();
 
         for (String pathPattern : paths) {
             try {
@@ -61,11 +62,17 @@ public class LogCollector {
 
                 for (Path filePath : resolvedPaths) {
                     try {
+                        // 达到批次上限时停止读取更多文件（避免 readNewLines 推进 offset 导致丢行）
+                        if (events.size() >= maxBatch) {
+                            break;
+                        }
                         collectFromFile(filePath, dataDir, events, maxBatch);
+                        processedKeys.add(filePath.toAbsolutePath().normalize().toString());
                     } catch (Exception e) {
                         log.warn("Error collecting from {}: {}", filePath, e.getMessage());
                     }
                 }
+                if (events.size() >= maxBatch) break;
             } catch (Exception e) {
                 log.warn("Error resolving path pattern {}: {}", pathPattern, e.getMessage());
             }
@@ -75,14 +82,17 @@ public class LogCollector {
         if (!events.isEmpty()) {
             boolean success = eventSender.sendLogEvents(events, registrar.getAgentKey());
             if (success) {
-                // 发送成功后保存 offset
-                tailers.values().forEach(tailer -> {
-                    try {
-                        tailer.saveOffset();
-                    } catch (IOException e) {
-                        log.warn("Failed to save offset for {}: {}", tailer.getFilePath(), e.getMessage());
+                // 只为本次实际处理过的 tailer 保存 offset
+                for (String key : processedKeys) {
+                    LogFileTailer tailer = tailers.get(key);
+                    if (tailer != null) {
+                        try {
+                            tailer.saveOffset();
+                        } catch (IOException e) {
+                            log.warn("Failed to save offset for {}: {}", tailer.getFilePath(), e.getMessage());
+                        }
                     }
-                });
+                }
             }
         }
     }
@@ -105,8 +115,6 @@ public class LogCollector {
 
         List<String> lines = tailer.readNewLines();
         for (String line : lines) {
-            if (events.size() >= maxBatch) break;
-
             LogParser.ParseResult parsed = logParser.parse(line, key);
 
             LogEvent event = LogEvent.builder()

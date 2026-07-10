@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 
 /**
@@ -34,7 +33,7 @@ public class HeartbeatTask {
     private RestTemplate restTemplate;
     private long startTime = System.currentTimeMillis();
 
-    @Scheduled(fixedDelayString = "${secguard.log.interval:5}000", initialDelay = 5000)
+    @Scheduled(fixedDelayString = "${secguard.heartbeat.interval:30}000", initialDelay = 5000)
     public void heartbeat() {
         if (registrar.getAgentKey() == null) return;
 
@@ -76,22 +75,36 @@ public class HeartbeatTask {
 
     private Double getCpuUsage() {
         try {
-            OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-            double load = osBean.getSystemLoadAverage();
-            int cpus = osBean.getAvailableProcessors();
-            return cpus > 0 ? Math.min(100.0, (load / cpus) * 100) : 0.0;
+            // 使用 com.sun.management 获取系统级 CPU 使用率
+            com.sun.management.OperatingSystemMXBean sunBean =
+                    (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            double cpuLoad = sunBean.getCpuLoad(); // 0.0 ~ 1.0
+            if (cpuLoad < 0) {
+                // getCpuLoad() 在首次调用或不可用时返回 -1，回退到 getSystemLoadAverage
+                double loadAvg = sunBean.getSystemLoadAverage();
+                if (loadAvg < 0) return 0.0; // Windows 下不可用
+                int cpus = sunBean.getAvailableProcessors();
+                return cpus > 0 ? Math.min(100.0, Math.max(0.0, (loadAvg / cpus) * 100)) : 0.0;
+            }
+            return Math.round(cpuLoad * 10000.0) / 100.0; // 保留两位小数
         } catch (Exception e) {
             return 0.0;
         }
     }
 
     private Double getMemUsage() {
-        Runtime runtime = Runtime.getRuntime();
-        long total = runtime.totalMemory();
-        long free = runtime.freeMemory();
-        long max = runtime.maxMemory();
-        long used = total - free;
-        return (double) used / max * 100;
+        try {
+            // 使用 com.sun.management 获取系统级内存使用率
+            com.sun.management.OperatingSystemMXBean sunBean =
+                    (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            long totalMemory = sunBean.getTotalMemorySize();
+            long freeMemory = sunBean.getFreeMemorySize();
+            if (totalMemory <= 0) return 0.0;
+            long usedMemory = totalMemory - freeMemory;
+            return Math.round((double) usedMemory / totalMemory * 10000.0) / 100.0;
+        } catch (Exception e) {
+            return 0.0;
+        }
     }
 
     private Integer getPid() {

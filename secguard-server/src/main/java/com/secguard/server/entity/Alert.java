@@ -33,7 +33,7 @@ public class Alert {
     private Long id;
 
     /** 关联 Agent */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "agent_id")
     @JsonIgnore
     private Agent agent;

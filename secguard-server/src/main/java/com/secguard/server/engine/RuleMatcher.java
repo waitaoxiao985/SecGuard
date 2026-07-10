@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,8 +27,8 @@ import java.util.regex.Pattern;
 @Slf4j
 public class RuleMatcher {
 
-    // 缓存已编译的正则表达式
-    private final Map<String, Pattern> patternCache = new HashMap<>();
+    // 缓存已编译的正则表达式（ConcurrentHashMap 保证多线程安全）
+    private final Map<String, Pattern> patternCache = new ConcurrentHashMap<>();
 
     /**
      * 尝试用一条规则匹配事件

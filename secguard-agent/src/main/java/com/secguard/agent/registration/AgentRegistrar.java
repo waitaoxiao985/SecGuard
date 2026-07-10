@@ -85,12 +85,21 @@ public class AgentRegistrar {
             // ApiResponse.data 是一个 Map，从中提取 AgentRegisterResponse 字段
             Object data = response.getBody().getData();
             if (data instanceof java.util.Map<?, ?> map) {
-                agentKey = (String) map.get("agentKey");
-                agentId = ((Number) map.get("agentId")).longValue();
+                Object keyObj = map.get("agentKey");
+                Object idObj = map.get("agentId");
+
+                if (keyObj == null) {
+                    throw new IOException("Server response missing agentKey");
+                }
+
+                agentKey = (String) keyObj;
+                agentId = idObj instanceof Number ? ((Number) idObj).longValue() : null;
 
                 // 持久化到本地
                 Files.writeString(keyFile, agentKey);
-                Files.writeString(idFile, String.valueOf(agentId));
+                if (agentId != null) {
+                    Files.writeString(idFile, String.valueOf(agentId));
+                }
 
                 log.info("Agent registered: id={}, key={}, hostname={}, ip={}",
                         agentId, agentKey, hostname, ip);

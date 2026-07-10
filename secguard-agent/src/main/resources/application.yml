@@ -31,6 +31,10 @@ secguard:
     interval: 30  # 扫描间隔（秒），测试用 30s，生产建议 300s
     max-file-size-mb: 10  # 单文件最大哈希大小（MB）
 
+  # 心跳配置
+  heartbeat:
+    interval: 30  # 心跳间隔（秒）
+
 # ===== 日志 =====
 logging:
   level:

@@ -167,8 +167,10 @@ public class FimScanner {
      * 判断路径是否属于某个监控目录
      */
     private boolean isUnderMonitoredPath(String filePath) {
+        Path file = Paths.get(filePath);
         for (String dirPath : properties.getFim().getPaths()) {
-            if (filePath.startsWith(Paths.get(dirPath).toAbsolutePath().normalize().toString())) {
+            Path dir = Paths.get(dirPath).toAbsolutePath().normalize();
+            if (file.startsWith(dir)) {
                 return true;
             }
         }

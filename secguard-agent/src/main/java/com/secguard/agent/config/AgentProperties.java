@@ -18,6 +18,7 @@ public class AgentProperties {
     private AgentConfig agent = new AgentConfig();
     private LogConfig log = new LogConfig();
     private FimConfig fim = new FimConfig();
+    private HeartbeatConfig heartbeat = new HeartbeatConfig();
 
     @Data
     public static class AgentConfig {
@@ -47,5 +48,11 @@ public class AgentProperties {
         private int interval = 300;
         /** 单文件最大哈希大小（MB），超过则只记录元信息不计算哈希 */
         private int maxFileSizeMb = 10;
+    }
+
+    @Data
+    public static class HeartbeatConfig {
+        /** 心跳间隔（秒），默认 30 秒 */
+        private int interval = 30;
     }
 }

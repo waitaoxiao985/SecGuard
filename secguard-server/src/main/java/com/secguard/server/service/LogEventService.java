@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -35,18 +36,18 @@ public class LogEventService {
     private final AgentRepository agentRepository;
     private final ObjectMapper objectMapper;
     private final RuleEngine ruleEngine;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * 批量接收并处理日志事件
      *
-     * 1. 存储到 sg_log_event 表
-     * 2. 送入规则引擎匹配 → 触发告警
+     * 1. 在独立事务中存储到 sg_log_event 表（确保日志不会因规则引擎异常丢失）
+     * 2. 事务提交后送入规则引擎匹配 → 触发告警
      *
      * @param agentKey Agent 密钥
      * @param events   日志事件列表
      * @return 实际存储的事件数
      */
-    @Transactional
     public int ingestEvents(String agentKey, List<LogEvent> events) {
         Long agentId = agentRepository.findByAgentKey(agentKey)
                 .map(a -> a.getId())
@@ -57,14 +58,17 @@ public class LogEventService {
             return 0;
         }
 
-        // 1. 持久化日志
+        // 1. 在独立事务中持久化日志（事务提交后才继续）
         List<LogEventEntity> entities = events.stream()
                 .map(event -> toEntity(agentId, event))
                 .toList();
-        logEventRepository.saveAll(entities);
+
+        transactionTemplate.executeWithoutResult(status -> {
+            logEventRepository.saveAll(entities);
+        });
         log.info("Ingested {} log events from agent {} (id={})", events.size(), agentKey, agentId);
 
-        // 2. 规则引擎处理
+        // 2. 规则引擎处理（独立于持久化事务，失败不影响已存储的日志）
         for (LogEvent event : events) {
             try {
                 Map<String, String> fields = event.getFields();
