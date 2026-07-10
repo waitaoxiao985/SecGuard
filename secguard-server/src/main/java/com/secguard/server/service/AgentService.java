@@ -1,5 +1,7 @@
 package com.secguard.server.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.secguard.common.dto.*;
 import com.secguard.common.enums.AgentStatus;
 import com.secguard.server.dto.AgentDetailResponse;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +38,7 @@ public class AgentService {
 
     private final AgentRepository agentRepository;
     private final AgentConfigRepository agentConfigRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${secguard.agent.heartbeat-timeout:120}")
     private int heartbeatTimeout;
@@ -289,14 +293,29 @@ public class AgentService {
     }
 
     /**
-     * Entity -> DTO
+     * Entity -> DTO（含 JSON 字段解析）
      */
     private AgentConfigDTO toConfigDTO(AgentConfig config) {
         return AgentConfigDTO.builder()
+                .logPaths(parseJsonArray(config.getLogPaths()))
+                .fimPaths(parseJsonArray(config.getFimPaths()))
                 .logInterval(config.getLogInterval())
                 .fimInterval(config.getFimInterval())
                 .inventoryInterval(config.getInventoryInterval())
                 .heartbeatInterval(config.getHeartbeatInterval())
                 .build();
+    }
+
+    /**
+     * 解析 JSON 数组字符串为 List<String>
+     */
+    private List<String> parseJsonArray(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            log.debug("Failed to parse JSON array: {}", json);
+            return Collections.emptyList();
+        }
     }
 }

@@ -34,9 +34,15 @@ public class AgentKeyAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // 只对心跳等需要 Agent 身份的接口生效
-        return !path.startsWith("/api/agents/heartbeat")
-                && !path.startsWith("/api/events/");
+        String method = request.getMethod();
+        // 只拦截 POST 请求到 Agent 专属端点（GET 走 JWT 认证）
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/agents/heartbeat")) {
+            return false;
+        }
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/events/")) {
+            return false;
+        }
+        return true;
     }
 
     @Override

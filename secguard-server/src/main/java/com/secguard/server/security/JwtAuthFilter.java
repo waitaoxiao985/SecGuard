@@ -30,12 +30,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // Agent 接口和公开接口不走 JWT 认证
-        return path.startsWith("/api/agents/register")
-                || path.startsWith("/api/agents/heartbeat")
-                || path.startsWith("/api/events/")
-                || path.startsWith("/api/auth/")
-                || path.startsWith("/ws/");
+        String method = request.getMethod();
+        // Agent 注册/心跳不走 JWT
+        if (path.startsWith("/api/agents/register") || path.startsWith("/api/agents/heartbeat")) {
+            return true;
+        }
+        // POST /api/events/ 走 Agent Key 认证，不走 JWT；但 GET 需要 JWT
+        if ("POST".equalsIgnoreCase(method) && path.startsWith("/api/events/")) {
+            return true;
+        }
+        // 公开接口和 WebSocket 不走 JWT
+        return path.startsWith("/api/auth/") || path.startsWith("/ws/") || path.startsWith("/actuator/");
     }
 
     @Override

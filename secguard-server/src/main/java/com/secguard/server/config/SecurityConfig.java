@@ -50,8 +50,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 // Agent 通信接口（由 AgentKeyAuthFilter 处理）
                 .requestMatchers(HttpMethod.POST, "/api/agents/heartbeat").hasRole("AGENT")
-                .requestMatchers("/api/events/**").hasRole("AGENT")
-                // 管理端接口需要认证
+                .requestMatchers(HttpMethod.POST, "/api/events/**").hasRole("AGENT")
+                // 管理端接口需要认证（含 GET /api/events/* 日志查询）
                 .anyRequest().authenticated()
             )
             // 添加自定义过滤器（在 UsernamePasswordAuthenticationFilter 之前）

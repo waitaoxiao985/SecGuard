@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: secguard-agent
+  main:
+    banner-mode: off
 
 # ===== Agent 配置 =====
 secguard:
@@ -11,38 +13,20 @@ secguard:
     # Server 地址
     server-url: http://localhost:8900
     # Agent 名称（首次注册时上报）
-    name: ${HOSTNAME:secguard-agent-01}
-    # 心跳间隔（秒）
-    heartbeat-interval: 30
+    name: secguard-agent-01
+    # 本地数据目录（存放 agent_key、offset 等）
+    data-dir: .secguard
 
   # 日志采集配置
   log:
-    enabled: true
     paths:
-      - /var/log/syslog
-      - /var/log/auth.log
-      - /var/log/nginx/access.log
+      - "C:/logs/test-app.log"
     interval: 5  # 采集间隔（秒）
-
-  # FIM 文件完整性监控
-  fim:
-    enabled: true
-    paths:
-      - /etc/passwd
-      - /etc/shadow
-      - /etc/hosts
-      - /etc/ssh/sshd_config
-    interval: 300  # 定时扫描间隔（秒）
-    realtime: true  # 启用实时监控（WatchService）
-
-  # 主机资产采集
-  inventory:
-    enabled: true
-    interval: 3600  # 采集间隔（秒）
+    max-batch-size: 100  # 单次最大采集条数
 
 # ===== 日志 =====
 logging:
   level:
     com.secguard: DEBUG
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{20} - %msg%n"
