@@ -1,0 +1,80 @@
+version: "3.8"
+
+services:
+  # ===== MySQL 数据库 =====
+  mysql:
+    image: mysql:8.0
+    container_name: secguard-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-SecGuard@2026}
+      MYSQL_DATABASE: secguard
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== Redis 缓存 =====
+  redis:
+    image: redis:7-alpine
+    container_name: secguard-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== SecGuard Server =====
+  server:
+    build:
+      context: ./secguard-server
+      dockerfile: Dockerfile
+    container_name: secguard-server
+    ports:
+      - "8900:8900"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/secguard?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-SecGuard@2026}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SECGUARD_JWT_SECRET: ${JWT_SECRET:-SecGuard-JWT-Production-Secret-Change-Me-256-Bits-Minimum!!}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ===== SecGuard Agent (可选，按需启用) =====
+  agent:
+    build:
+      context: ./secguard-agent
+      dockerfile: Dockerfile
+    container_name: secguard-agent
+    ports:
+      - "8901:8901"
+    environment:
+      SECGUARD_AGENT_SERVER_URL: http://server:8900
+      SECGUARD_AGENT_NAME: docker-agent
+    depends_on:
+      - server
+    restart: unless-stopped
+    profiles:
+      - agent  # 默认不启动，用 --profile agent 启用
+
+volumes:
+  mysql_data:
+  redis_data:

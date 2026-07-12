@@ -167,6 +167,12 @@ public class AlertService {
         }
         stats.put("bySeverity", bySeverity);
 
+        Map<String, Long> byStatus = new LinkedHashMap<>();
+        for (Object[] row : alertRepository.countByStatusGrouped()) {
+            byStatus.put(row[0].toString(), (Long) row[1]);
+        }
+        stats.put("byStatus", byStatus);
+
         return stats;
     }
 }

@@ -1,0 +1,50 @@
+# SecGuard Server - 生产环境配置
+# 使用方式: java -jar app.jar --spring.profiles.active=prod
+# 或通过环境变量覆盖: SPRING_PROFILES_ACTIVE=prod
+
+server:
+  port: 8900
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/secguard?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+secguard:
+  jwt:
+    secret: ${SECGUARD_JWT_SECRET}
+    expiration: 86400000
+    issuer: secguard-server
+
+  agent:
+    heartbeat-timeout: 120
+    health-check-interval: 30000
+    cleanup-interval: 3600
+
+  engine:
+    rules-path: classpath:rules/
+    reload-on-change: false
+
+logging:
+  level:
+    com.secguard: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
