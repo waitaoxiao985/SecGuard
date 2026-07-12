@@ -77,8 +77,8 @@ SecGuard/
 │   └── custom/                   # 用户自定义规则
 │
 ├── secguard-web/                 # Vue 3 前端
-│   ├── src/views/                # DashboardView, AgentsView, VulnerabilityView, LoginView
-│   ├── src/api/                  # API 客户端 (auth, dashboard, vulnerability)
+│   ├── src/views/                # DashboardView, AgentsView, AlertsView, VulnerabilityView, FimView, InventoryView, RulesView, LoginView
+│   ├── src/api/                  # API 客户端 (auth, dashboard, alert, fim, inventory, rule, vulnerability)
 │   ├── src/layouts/              # MainLayout 侧边栏导航
 │   ├── src/router/               # Vue Router 路由配置
 │   └── src/stores/               # Pinia 状态管理 (auth)
@@ -165,6 +165,7 @@ SecGuard/
 | GET | `/api/cve/stats` | CVE 库统计 | JWT |
 | GET | `/api/agents/stats` | Agent 统计（按状态分组） | JWT |
 | GET | `/api/alerts/trend` | 24 小时告警趋势（按小时） | JWT |
+| GET | `/api/alerts/mitre-stats` | MITRE ATT&CK 战术/技术分布统计 | JWT |
 
 ### WebSocket
 
@@ -264,7 +265,7 @@ curl http://localhost:8900/api/events/logs?page=0&size=10 -H "Authorization: Bea
 | W6 | FIM 模块（Server 端） | ✅ 完成 |
 | W7 | 主机资产采集 | ✅ 完成 |
 | W8 | 漏洞检测 + Dashboard 基础 | ✅ 完成 |
-| W9 | Dashboard 完善 | ⏳ |
+| W9 | Dashboard 完善 | ✅ 完成 |
 | W10 | 收尾 + 文档 | ⏳ |
 
 ## 🎯 规则示例

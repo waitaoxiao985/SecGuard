@@ -49,6 +49,58 @@ public class DashboardController {
     }
 
     /**
+     * MITRE ATT&CK 热力图统计
+     * GET /api/alerts/mitre-stats
+     * 返回按战术和技术分组的告警计数
+     */
+    @GetMapping("/api/alerts/mitre-stats")
+    public ApiResponse<Map<String, Object>> mitreStats() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Long> byTactic = new LinkedHashMap<>();
+        Map<String, Long> byTechnique = new LinkedHashMap<>();
+
+        List<com.secguard.server.entity.Alert> alerts = alertRepository.findAll(
+                new org.springframework.data.jpa.domain.Specification<com.secguard.server.entity.Alert>() {
+                    @Override
+                    public jakarta.persistence.criteria.Predicate toPredicate(
+                            jakarta.persistence.criteria.Root<com.secguard.server.entity.Alert> root,
+                            jakarta.persistence.criteria.CriteriaQuery<?> query,
+                            jakarta.persistence.criteria.CriteriaBuilder cb) {
+                        return cb.and(
+                                cb.isNotNull(root.get("mitreTactic")),
+                                cb.notEqual(root.get("mitreTactic"), "")
+                        );
+                    }
+                });
+
+        for (com.secguard.server.entity.Alert alert : alerts) {
+            // 解析 tactic（可能是逗号分隔的多个值）
+            if (alert.getMitreTactic() != null) {
+                for (String t : alert.getMitreTactic().split("[,;\\s]+")) {
+                    String tactic = t.trim();
+                    if (!tactic.isEmpty()) {
+                        byTactic.merge(tactic, 1L, Long::sum);
+                    }
+                }
+            }
+            // 解析 technique
+            if (alert.getMitreTechnique() != null) {
+                for (String t : alert.getMitreTechnique().split("[,;\\s]+")) {
+                    String technique = t.trim();
+                    if (!technique.isEmpty()) {
+                        byTechnique.merge(technique, 1L, Long::sum);
+                    }
+                }
+            }
+        }
+
+        result.put("byTactic", byTactic);
+        result.put("byTechnique", byTechnique);
+        result.put("totalWithMitre", (long) alerts.size());
+        return ApiResponse.ok(result);
+    }
+
+    /**
      * 告警 24h 趋势（按小时分组）
      * GET /api/alerts/trend
      */

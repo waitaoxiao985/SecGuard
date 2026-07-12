@@ -28,7 +28,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'alerts',
         name: 'Alerts',
-        component: () => import('../views/placeholder/ComingSoonView.vue'),
+        component: () => import('../views/AlertsView.vue'),
         meta: { title: '告警管理', icon: 'Bell' }
       },
       {
@@ -40,19 +40,19 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'fim',
         name: 'FIM',
-        component: () => import('../views/placeholder/ComingSoonView.vue'),
+        component: () => import('../views/FimView.vue'),
         meta: { title: '文件监控', icon: 'Document' }
       },
       {
         path: 'inventory',
         name: 'Inventory',
-        component: () => import('../views/placeholder/ComingSoonView.vue'),
+        component: () => import('../views/InventoryView.vue'),
         meta: { title: '资产清单', icon: 'Box' }
       },
       {
         path: 'rules',
         name: 'Rules',
-        component: () => import('../views/placeholder/ComingSoonView.vue'),
+        component: () => import('../views/RulesView.vue'),
         meta: { title: '规则管理', icon: 'Setting' }
       }
     ]

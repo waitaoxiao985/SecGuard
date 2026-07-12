@@ -76,8 +76,10 @@ const currentPage = ref(1)
 const pageSize = 20
 const total = ref(0)
 
-function statusTag(s: string): string {
-  const map: Record<string, string> = { ACTIVE: 'success', DISCONNECTED: 'warning', PENDING: 'info', DISABLED: 'danger' }
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+
+function statusTag(s: string): TagType {
+  const map: Record<string, TagType> = { ACTIVE: 'success', DISCONNECTED: 'warning', PENDING: 'info', DISABLED: 'danger' }
   return map[s] || 'info'
 }
 

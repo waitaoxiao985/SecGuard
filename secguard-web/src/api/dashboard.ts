@@ -26,6 +26,11 @@ export const dashboardApi = {
     return api.get('/api/alerts/trend')
   },
 
+  /** MITRE ATT&CK 热力图统计 */
+  getMitreStats() {
+    return api.get('/api/alerts/mitre-stats')
+  },
+
   /** 最新告警列表 */
   getRecentAlerts(limit = 10) {
     return api.get('/api/alerts', { params: { page: 0, size: limit } })

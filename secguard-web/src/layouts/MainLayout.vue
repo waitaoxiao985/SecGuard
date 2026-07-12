@@ -76,15 +76,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { alertApi } from '../api/alert'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const isCollapse = ref(false)
 const alertCount = ref(0)
+let alertTimer: ReturnType<typeof setInterval> | null = null
 
 const menuRoutes = router.getRoutes()
   .find(r => r.path === '/')
@@ -92,10 +94,26 @@ const menuRoutes = router.getRoutes()
 
 const currentRoute = computed(() => route)
 
+async function refreshAlertCount() {
+  try {
+    const data: any = await alertApi.stats()
+    alertCount.value = data.open ?? 0
+  } catch { /* ignore */ }
+}
+
 function handleCommand(cmd: string) {
   if (cmd === 'logout') {
     authStore.logout()
     router.push('/login')
   }
 }
+
+onMounted(() => {
+  refreshAlertCount()
+  alertTimer = setInterval(refreshAlertCount, 30000) // 每 30s 刷新
+})
+
+onUnmounted(() => {
+  if (alertTimer) clearInterval(alertTimer)
+})
 </script>
